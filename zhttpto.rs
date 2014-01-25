@@ -15,9 +15,12 @@
 use std::io::*;
 use std::io::net::ip::{SocketAddr};
 use std::{str};
+use std::io::buffered::BufferedReader;
+use std::io::File;
 
 static IP: &'static str = "127.0.0.1";
 static PORT:        int = 4414;
+static mut counter: int = 0;
 
 fn main() {
     let addr = from_str::<SocketAddr>(format!("{:s}:{:d}", IP, PORT)).unwrap();
@@ -44,6 +47,9 @@ fn main() {
             stream.read(buf);
             let request_str = str::from_utf8(buf);
             println(format!("Received request :\n{:s}", request_str));
+
+            let path_vec: ~[&str] = request_str.split(' ').collect();
+
             
             let response: ~str = 
                 ~"HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n
@@ -55,7 +61,33 @@ fn main() {
                  <body>
                  <h1>Greetings, Krusty!</h1>
                  </body></html>\r\n";
-            stream.write(response.as_bytes());
+
+            unsafe {
+                counter = counter + 1;
+                let counter_resp: ~str = counter.to_str();
+                stream.write(response.as_bytes());
+                stream.write("Page visits: ".as_bytes());
+                stream.write(counter_resp.as_bytes());
+
+                match File::open(&Path::new(path_vec[1])) {
+                    Some(file) => {
+                        let mut reader = BufferedReader::new(file);
+                        //reading from file
+                        let file_bytes: ~[u8] = reader.read_to_end();
+
+                        let newline: ~str = ~"<h1></h1></html>\n";
+                        stream.write(newline.as_bytes());
+                        stream.write("File contents:".as_bytes());
+                        stream.write(newline.as_bytes());
+                        stream.write(newline.as_bytes());
+                        stream.write(file_bytes);
+                    }
+                    None =>{
+                        println("Opening message.txt failed!");
+                    }
+                }
+            }
+
             println!("Connection terminates.");
         }
     }
