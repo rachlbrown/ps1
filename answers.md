@@ -18,3 +18,4 @@ Chrome/31.0.1650.63 Safari/537.36: enhancements that are available in the browse
 Source: http://en.wikipedia.org/wiki/User_agent
 
 Problem 2:
+It is unsafe to modify the global variable due to concurrency issues. If two people make a request to the server at the same time, then this variable won't be updated properly.
